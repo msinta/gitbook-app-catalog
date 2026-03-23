@@ -105,11 +105,10 @@ export const buildHtml = (apps: any[]) => `<!DOCTYPE html>
     background: var(--input-bg);
     color: var(--text-primary);
     cursor: pointer;
-        flex: 1;
-    min-width: 180px;
-}
-
-.controls select {
+  }
+  .controls input::placeholder { color: var(--text-muted); }
+  .controls input { flex: 1; min-width: 180px; }
+  .controls select {
     padding: 8px 36px 8px 12px;
     appearance: none;
     -webkit-appearance: none;
@@ -119,14 +118,12 @@ export const buildHtml = (apps: any[]) => `<!DOCTYPE html>
     width: 160px;
     flex-shrink: 0;
     flex-grow: 0;
-}
-  .controls input::placeholder { color: var(--text-muted); }
-
+  }
   .controls select option { background: var(--input-bg); color: var(--text-primary); }
 
   .grid {
     display: grid;
-grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
     gap: 16px;
   }
 
@@ -169,7 +166,7 @@ grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   .card-publisher { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   .card-meta-row { font-size: 12px; color: var(--text-secondary); }
   .card-meta-row span { font-weight: 500; color: var(--text-primary); }
-.card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; flex: 1; }
+  .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; flex: 1; }
   .divider { border: none; border-top: 1px solid var(--border-light); }
   .card-footer { display: flex; align-items: center; justify-content: space-between; }
   .card-badges { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -224,12 +221,6 @@ grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
     <input id="search" placeholder="Search apps..." oninput="render()" />
     <select id="category" onchange="render()">
       <option value="All">All Categories</option>
-      <option value="Data">Data</option>
-      <option value="Monitoring">Monitoring</option>
-      <option value="Productivity">Productivity</option>
-      <option value="Security">Security</option>
-      <option value="Analytics">Analytics</option>
-      <option value="DevOps">DevOps</option>
     </select>
     <select id="price" onchange="render()">
       <option value="All">All Prices</option>
@@ -277,6 +268,17 @@ function matchesPrice(price, filter) {
 
 function formatPrice(price) {
   return price === 0 ? 'Free' : '$' + price.toLocaleString();
+}
+
+function buildCategoryFilter() {
+  const categories = [...new Set(apps.map(app => app.category))].sort();
+  const select = document.getElementById('category');
+  categories.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
 }
 
 const SKELETON_CARD = \`
@@ -379,7 +381,10 @@ if (document.readyState !== 'loading') {
 }
 
 showSkeleton();
-window.addEventListener('load', () => render());
+window.addEventListener('load', () => {
+  buildCategoryFilter();
+  render();
+});
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => render());
 window.addEventListener('resize', () => render());
 new ResizeObserver(() => resizeFrame()).observe(document.body);
