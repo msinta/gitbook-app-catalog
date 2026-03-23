@@ -1,14 +1,14 @@
-name: mo-app-catalogue
-title: App Catalogue
+name: mo-app-catalog
+title: App Catalog
 script: src/index.tsx
 description: ''
 scopes:
   - space:content:read
   - space:metadata:read
 blocks:
-  - id: mo-app-catalogue
-    title: App Catalogue
-    description: Browse and filter a catalogue of apps
+  - id: mo-app-catalog
+    title: App Catalog
+    description: A searchable app catalog — browse, filter, and explore apps directly in your docs.
 
 organization: HUObXkGvOKYSRfdbtdSM
 visibility: private
