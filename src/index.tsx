@@ -66,8 +66,8 @@ const handleFetch: FetchEventCallback = async (request) => {
 };
 
 // The main block component — fetches all pages in the space, maps them to app cards, and renders the webframe
-const appCatalogueBlock = createComponent({
-  componentId: "mo-app-catalogue",
+const appCatalogBlock = createComponent({
+  componentId: "mo-app-catalog",
   render: async (element, context) => {
     const base =
       context.environment.installation?.urls.publicEndpoint ??
@@ -112,5 +112,5 @@ const appCatalogueBlock = createComponent({
 
 export default createIntegration({
   fetch: handleFetch,
-  components: [appCatalogueBlock],
+  components: [appCatalogBlock],
 });
