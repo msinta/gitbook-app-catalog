@@ -28,7 +28,7 @@ const pageToApp = (page: GitBookPage, publishedBase: string): App => {
     category: category.charAt(0).toUpperCase() + category.slice(1),
     status: tags.includes("beta") ? "Beta" : "Stable",
     verified: tags.includes("verified"),
-    price: parseInt(vars.price ?? "0", 10),
+    price: Number(vars.price ?? "0"),
     icon: page.icon ?? null,
     pageUrl:
       publishedBase && page.path
@@ -49,7 +49,7 @@ const handleFetch: FetchEventCallback = async (request) => {
   if (dataParam) {
     try {
       const parsed = JSON.parse(decodeURIComponent(dataParam));
-      if (parsed.length > 0) apps = parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) apps = parsed;
     } catch (err) {
       console.error("Failed to parse app data from URL param:", err);
     }
@@ -87,9 +87,13 @@ const appCatalogBlock = createComponent({
             headers: authHeaders,
           }),
         ]);
+
+        if (!spaceRes.ok || !pagesRes.ok) throw new Error("API request failed");
+
         const spaceData = (await spaceRes.json()) as SpaceData;
         const pagesData = (await pagesRes.json()) as PagesData;
         const publishedBase = spaceData.urls?.published ?? "";
+
         apps = flattenPages(pagesData.pages ?? [])
           .filter(
             (page) => page.variables && Object.keys(page.variables).length > 0,
