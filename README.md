@@ -16,8 +16,8 @@ A custom GitBook block that renders a searchable, filterable app catalog inside 
 ### Setup
 
 ```bash
-git clone https://github.com/msinta/gitbook-app-catalogue
-cd gitbook-app-catalogue
+git clone https://github.com/msinta/gitbook-app-catalog
+cd gitbook-app-catalog
 npm install
 gitbook dev
 ```
@@ -34,8 +34,10 @@ gitbook dev
 
 ### Stretch goals completed
 - **Live data from GitBook** — cards are powered by real GitBook pages. Title, description, icon, tags, and variables all feed into the card. Add a new page and it shows up in the catalog automatically.
+
 - **App detail view** — each card has a View Details button that navigates to the app's page. It detects whether you're in the editor or on the published site and uses the right URL, so the link always takes you to the right place regardless of context.
-- **UI polish** — skeleton loader while data fetches so there's never a blank block, empty state with a clear message when no results match, result count showing "Showing X of Y apps" when filters are active, uniform card heights so the grid always looks consistent regardless of how much text each card has, and a responsive layout that adapts to the available width.
+
+- **UI polish** — skeleton loader while data fetches so there's never a blank block, empty state with a clear message when no results match, result count showing "Showing X of Y apps" when filters are active, uniform card heights so the grid always looks consistent.
 
 ### Extra features beyond the brief
 - **Internal admin guide** — a hidden page inside the space walks editors through how to add a new app, including duplicating an existing page, updating the content, setting variables, and assigning tags. It lives in a separate hidden group so it never shows up for readers on the published site.
@@ -47,9 +49,9 @@ gitbook dev
 
 ## How it works
 
-ContentKit doesn't support dynamic array rendering or client-side filtering, so the catalog UI is a self-contained HTML page served via a fetch handler and loaded inside a `webframe` block.
+The goal was to make the catalog feel like a native part of the docs — fast, responsive, and seamless for the reader with no visible seams between the integration and the rest of the page.
 
-At render time the block calls the GitBook API, pulls all pages in the space, and maps each page's metadata into a card:
+When the block renders, it fetches all pages in the space via the GitBook API and builds each app card from the page's own metadata. The card data maps like this:
 
 | Source | Fields |
 |---|---|
@@ -58,34 +60,28 @@ At render time the block calls the GitBook API, pulls all pages in the space, an
 | Page tags | Category, Stable/Beta status, Verified badge |
 | Page variables | version, price, publisher, requiredProduct, supportedVersions |
 
-The iframe sends its content height back via `@webframe.resize` postMessage actions so the block always fits its content without scrollbars.
+That data gets passed to a self-contained HTML page served via a fetch handler and rendered inside a webframe block. All the search, filtering, and layout happens client-side inside that iframe. The iframe also sends its height back to GitBook via postMessage so the block always resizes to fit the content.
 
 ## Decisions and trade-offs
 
 **Webframe over ContentKit components**
-ContentKit is great for structured UI like buttons, inputs, and static layouts, but it doesn't support rendering a dynamic list of items from an array or any kind of client-side interactivity like search and filtering. Every re-render goes through the server, which makes real-time filtering impossible. A webframe lets you serve a fully self-contained HTML page instead, which is how we get a responsive card grid, live search, and instant filter updates without a round trip on every keystroke.
+- ContentKit's layout and styling capabilities are pretty limited for a use case like this. Getting client-side filtering to work smoothly without server round trips on every keystroke wasn't really possible natively, and the responsive grid layout hit similar walls. A webframe with a self-contained HTML page gives a better end-user experience and is completely opaque to the reader anyway.
 
 **Dynamic URLs for editor vs published site**
-Because the UI lives inside a webframe rather than ContentKit, we don't get GitBook's built-in link handling. So we detect the context manually by checking `window.location.ancestorOrigins` to see if the parent frame is `app.gitbook.com`. If it is, the View Details button uses the editor URL so you land on the right page inside the GitBook app. If it's the published site, it uses the public URL instead. Small thing but it means the block works correctly in both contexts without any extra configuration.
+- Using a webframe means we lose GitBook's built-in link handling. To work around this we check `window.location.ancestorOrigins` to detect whether the reader is inside the GitBook editor or on the published site, then use the appropriate URL for the View Details button. It means the block works correctly in both contexts without any extra configuration.
 
 **Page variables and tags as the data source**
-All metadata lives directly on GitBook pages. Tags handle category, status, and verified. Variables handle the numeric and text fields. No external database needed and editors stay fully in control.
-
+- All metadata lives directly on GitBook pages. Tags handle category, status, and verified. Variables handle the numeric and text fields. No external database needed and editors stay fully in control.
 
 **Separate content and integration repos**
-The integration code and the space content live in separate repos. Cleaner to maintain and closer to how a real deployment would be set up.
+- The integration code and the space content live in separate repos. Cleaner to maintain and closer to how a real deployment would be set up.
 
 ## What I'd build next
 
-**In-space app submission form**
-Right now adding a new app means creating a page, setting variables, assigning tags, and committing frontmatter. That's too much for a non-technical editor. A ContentKit form embedded in the space would let editors fill in the fields and hit submit, with the integration handling page creation, variables, and tags automatically via the API. No GitHub, no frontmatter, no code.
-
-**Resilient fallback with cached data**
-If the API call fails at render time the block shows nothing. A better approach would be to cache the last successful response in GitBook's installation config and serve that as a fallback, so the catalog always has something to show even during an outage.
-
-**Sorting options**
-Let readers sort by price, name, or newest.
-
+- **In-space app submission form** — Right now adding a new app means creating a page, setting variables, assigning tags, and committing frontmatter. That's too much for a non-technical editor. A ContentKit form embedded in the space would let editors fill in the fields and hit submit, with the integration handling page creation, variables, and tags automatically via the API. No GitHub, no frontmatter, no code.
+- **Resilient fallback with cached data** — If the API call fails at render time the block shows nothing. A better approach would be to cache the last successful response in GitBook's installation config and serve that as a fallback, so the catalog always has something to show even during an outage.
+- **Sorting options** — Let readers sort by price, name, or newest.
+- **Analytics** — Track which apps get clicked most and surface that data to space owners.
 ## Project structure
 
 ```
