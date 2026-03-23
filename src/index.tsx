@@ -7,7 +7,6 @@ import { buildHtml } from "./html";
 import { App, GitBookPage, SpaceData, PagesData } from "./types";
 
 // Recursively flattens nested GitBook pages into a single array
-
 const flattenPages = (pages: GitBookPage[]): GitBookPage[] =>
   pages.flatMap((p) => [p, ...flattenPages(p.pages ?? [])]);
 
