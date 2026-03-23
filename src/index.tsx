@@ -4,69 +4,56 @@ import {
   FetchEventCallback,
 } from "@gitbook/runtime";
 import { buildHtml } from "./html";
+import { App, GitBookPage, SpaceData, PagesData } from "./types";
 
-const flattenPages = (pages: any[]): any[] => {
-  const result = [];
-  const queue = [...pages];
-  while (queue.length > 0) {
-    const page = queue.shift();
-    result.push(page);
-    if (page.pages?.length > 0) queue.push(...page.pages);
-  }
-  return result;
-};
+// Recursively flattens nested GitBook pages into a single array
 
-const pageToApp = (page: any, publishedBase: string) => {
+const flattenPages = (pages: GitBookPage[]): GitBookPage[] =>
+  pages.flatMap((p) => [p, ...flattenPages(p.pages ?? [])]);
+
+// Converts a GitBook page into an app card object using its tags and variables
+const pageToApp = (page: GitBookPage, publishedBase: string): App => {
   const vars = page.variables ?? {};
-  const tagSlugs: string[] = (page.tags ?? []).map((t: any) => t.tag.tag);
-  const categoryTag = tagSlugs.find(
-    (t) => !["stable", "beta", "verified"].includes(t),
-  );
-  const category = categoryTag ?? "Other";
-  const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
-  const status = tagSlugs.includes("beta") ? "Beta" : "Stable";
-  const verified = tagSlugs.includes("verified");
-  const price = parseInt(vars.price ?? "0", 10);
-  const supportedVersions = vars.supportedVersions
-    ? vars.supportedVersions.split(",").map((v: string) => v.trim())
-    : [];
-  const pageUrl =
-    publishedBase && page.path
-      ? `${publishedBase}${page.path}`
-      : (page.urls?.app ?? "");
-
+  const tags = (page.tags ?? []).map((t) => t.tag.tag);
+  const category =
+    tags.find((t) => !["stable", "beta", "verified"].includes(t)) ?? "Other";
   return {
     name: page.title ?? "Untitled",
     description: page.description ?? "",
     version: vars.version ?? "",
     publisher: vars.publisher ?? "",
     requiredProduct: vars.requiredProduct ?? "",
-    supportedVersions,
-    category: categoryLabel,
-    status,
-    verified,
-    price,
+    supportedVersions: vars.supportedVersions
+      ? vars.supportedVersions.split(",").map((v) => v.trim())
+      : [],
+    category: category.charAt(0).toUpperCase() + category.slice(1),
+    status: tags.includes("beta") ? "Beta" : "Stable",
+    verified: tags.includes("verified"),
+    price: parseInt(vars.price ?? "0", 10),
     icon: page.icon ?? null,
-    pageUrl,
+    pageUrl:
+      publishedBase && page.path
+        ? `${publishedBase}${page.path}`
+        : (page.urls?.app ?? ""),
     editorUrl: page.urls?.app ?? "",
   };
 };
 
+// Serves the iframe HTML when the webframe requests it, with app data passed via URL param
 const handleFetch: FetchEventCallback = async (request) => {
   const url = new URL(request.url);
-
-  if (!url.pathname.endsWith("/iframe.html")) {
+  if (!url.pathname.endsWith("/iframe.html"))
     return new Response("Not found", { status: 404 });
-  }
 
-  let apps: any[] = [];
-
+  let apps: App[] = [];
   const dataParam = url.searchParams.get("data");
   if (dataParam) {
     try {
       const parsed = JSON.parse(decodeURIComponent(dataParam));
       if (parsed.length > 0) apps = parsed;
-    } catch {}
+    } catch (err) {
+      console.error("Failed to parse app data from URL param:", err);
+    }
   }
 
   return new Response(buildHtml(apps), {
@@ -78,18 +65,18 @@ const handleFetch: FetchEventCallback = async (request) => {
   });
 };
 
+// The main block component — fetches all pages in the space, maps them to app cards, and renders the webframe
 const appCatalogueBlock = createComponent({
   componentId: "mo-app-catalogue",
   render: async (element, context) => {
     const base =
       context.environment.installation?.urls.publicEndpoint ??
       context.environment.integration.urls.publicEndpoint;
-
     const spaceId = context.environment.spaceInstallation?.space;
     const { apiEndpoint, apiTokens } = context.environment;
     const authHeaders = { Authorization: `Bearer ${apiTokens.installation}` };
 
-    let apps: any[] = [];
+    let apps: App[] = [];
 
     if (spaceId) {
       try {
@@ -101,26 +88,20 @@ const appCatalogueBlock = createComponent({
             headers: authHeaders,
           }),
         ]);
-
-        const spaceData = (await spaceRes.json()) as {
-          urls?: { published?: string };
-        };
-        const pagesData = (await pagesRes.json()) as { pages?: any[] };
-
+        const spaceData = (await spaceRes.json()) as SpaceData;
+        const pagesData = (await pagesRes.json()) as PagesData;
         const publishedBase = spaceData.urls?.published ?? "";
-        const allPages = flattenPages(pagesData.pages ?? []);
-
-        apps = allPages
+        apps = flattenPages(pagesData.pages ?? [])
           .filter(
-            (page: any) =>
-              page.variables && Object.keys(page.variables).length > 0,
+            (page) => page.variables && Object.keys(page.variables).length > 0,
           )
-          .map((page: any) => pageToApp(page, publishedBase));
-      } catch {}
+          .map((page) => pageToApp(page, publishedBase));
+      } catch (err) {
+        console.error("Failed to fetch space data from GitBook API:", err);
+      }
     }
 
-    const iframeUrl = `${base}/iframe.html?data=${encodeURIComponent(JSON.stringify(apps))}`;
-
+    const iframeUrl = `${base}/iframe.html?v=3&data=${encodeURIComponent(JSON.stringify(apps))}`;
     return (
       <block>
         <webframe source={{ url: iframeUrl }} aspectRatio={16 / 9} />
