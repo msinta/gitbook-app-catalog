@@ -65,14 +65,19 @@ That data gets passed to a self-contained HTML page served via a fetch handler a
 ## Decisions and trade-offs
 
 1. **Webframe over ContentKit components** — ContentKit's layout and styling capabilities are pretty limited for a use case like this. Getting client-side filtering to work smoothly without server round trips on every keystroke wasn't really possible natively, and the responsive grid layout hit similar walls. A webframe with a self-contained HTML page gives a better end-user experience and is completely opaque to the reader anyway.
+
 2. **Dynamic URLs for editor vs published site** — Using a webframe means we lose GitBook's built-in link handling. To work around this we check `window.location.ancestorOrigins` to detect whether the reader is inside the GitBook editor or on the published site, then use the appropriate URL for the View Details button. It means the block works correctly in both contexts without any extra configuration.
+
 3. **Page variables and tags as the data source** — All metadata lives directly on GitBook pages. Tags handle category, status, and verified. Variables handle the numeric and text fields. No external database needed and editors stay fully in control.
+
 4. **Separate content and integration repos** — The integration code and the space content live in separate repos. Cleaner to maintain and closer to how a real deployment would be set up.
 
 ## What I'd build next
 
 1. **In-space app submission form** — Right now adding a new app means creating a page, setting variables, assigning tags, and committing frontmatter. That's too much for a non-technical editor. A ContentKit form embedded in the space would let editors fill in the fields and hit submit, with the integration handling page creation, variables, and tags automatically via the API. No GitHub, no frontmatter, no code.
+
 2. **Resilient fallback with cached data** — If the API call fails at render time the block shows nothing. A better approach would be to cache the last successful response in GitBook's installation config and serve that as a fallback, so the catalog always has something to show even during an outage.
+
 3. **Sorting options** — Let readers sort by price, name, or newest.
 
 ## Project structure
