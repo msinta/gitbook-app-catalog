@@ -76,11 +76,13 @@ That data gets passed to a self-contained HTML page served via a fetch handler a
 
 ## What I'd build next
 
-1. **In-space app submission form** — Right now, adding a new app means creating a page, setting variables, assigning tags, and committing frontmatter. That's too much for a non-technical editor. A ContentKit form embedded in the space would let editors fill in the fields and hit submit, with the integration handling page creation, variables, and tags automatically via the API. No GitHub, no frontmatter, no code.
+1. **Featured apps** — Space owners could pin specific apps to always appear at the top of the catalog, useful for highlighting new releases or recommended tools.
 
-2. **Resilient fallback with cached data** — If the API call fails at render time, the block shows nothing. A better approach would be to cache the last successful response in GitBook's installation config and serve that as a fallback, so the catalog always has something to show even during an outage.
+2. **Related apps** — When viewing an app, suggest other apps from the same publisher or category to help users discover relevant tools they might have missed.
 
-3. **Sorting options** — Let readers sort by price, name, or newest.
+3. **Resilient fallback with cached data** — If the API call fails at render time, the block shows nothing. A better approach would be to cache the last successful response in GitBook's installation config and serve that as a fallback, so the catalog always has something to show even during an outage.
+
+4. **Sorting options** — Let readers sort by price, name, or newest.
 
 ## Project structure
 
